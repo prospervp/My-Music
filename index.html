@@ -3,7 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141312">
+  <meta name="description" content="Play, organize, edit and split your own audio and video files.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="My Media">
   <title>My Media Player</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -38,7 +47,13 @@
       </div>
     </nav>
 
-    <div class="sidebar-foot" id="storageInfo"></div>
+    <div class="sidebar-foot">
+      <div class="foot-actions">
+        <button class="foot-btn" id="driveSettingsBtn"></button>
+        <button class="foot-btn" id="installBtn" hidden></button>
+      </div>
+      <div id="storageInfo"></div>
+    </div>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -104,8 +119,82 @@
   <div class="drop-box">Drop audio or video files to add them</div>
 </div>
 
+<!-- ============ Editor ============ -->
+<section class="editor" id="editor" hidden aria-label="Editor">
+  <header class="ed-head">
+    <button class="icon-btn" id="edClose" title="Close editor" aria-label="Close editor"></button>
+    <div class="ed-head-title">
+      <div class="vh-kicker">Edit &amp; split</div>
+      <div class="ed-name" id="edName"></div>
+    </div>
+    <button class="btn primary" id="edSave">Save</button>
+  </header>
+  <div class="ed-body" id="edBody">
+    <div class="ed-preview" id="edPreview">
+      <video id="edVideo" playsinline preload="auto"></video>
+      <div class="ed-audio"><div class="disc" aria-hidden="true"></div></div>
+    </div>
+
+    <div class="ed-timeline">
+      <div class="ed-scroll" id="edScroll"><canvas id="edCanvas"></canvas></div>
+      <div class="ed-zoom">
+        <span class="ed-hint" id="edHint">Tap the timeline to move the playhead. Drag the orange handles to trim.</span>
+        <button class="icon-btn small" id="edZoomOut" title="Zoom out" aria-label="Zoom out"></button>
+        <span class="ed-zoom-label" id="edZoomLabel">1×</span>
+        <button class="icon-btn small" id="edZoomIn" title="Zoom in" aria-label="Zoom in"></button>
+      </div>
+    </div>
+
+    <div class="ed-transport">
+      <button class="icon-btn" data-nudge="-5" title="Back 5 s">−5s</button>
+      <button class="icon-btn" data-nudge="-0.1" title="Back 0.1 s">−.1</button>
+      <button class="play-btn" id="edPlay" aria-label="Play"></button>
+      <button class="icon-btn" data-nudge="0.1" title="Forward 0.1 s">+.1</button>
+      <button class="icon-btn" data-nudge="5" title="Forward 5 s">+5s</button>
+      <span class="ed-time" id="edTime">0:00.0</span>
+    </div>
+
+    <div class="ed-tools">
+      <button class="btn" id="edSetStart"></button>
+      <button class="btn" id="edSplit"></button>
+      <button class="btn" id="edSetEnd"></button>
+      <button class="btn ghost" id="edUndo"></button>
+      <button class="btn ghost" id="edReset"></button>
+    </div>
+
+    <div class="ed-section">
+      <h3>Pieces <span class="ed-count" id="edCount"></span></h3>
+      <div class="ed-segments" id="edSegments"></div>
+    </div>
+
+    <details class="ed-section ed-options">
+      <summary>Sound &amp; quality options</summary>
+      <div class="ed-grid">
+        <label>Fade in <span><input type="number" id="edFadeIn" min="0" max="30" step="0.5" value="0"> s</span></label>
+        <label>Fade out <span><input type="number" id="edFadeOut" min="0" max="30" step="0.5" value="0"> s</span></label>
+        <label>Volume <span><input type="range" id="edGain" min="0" max="300" step="5" value="100"> <output id="edGainOut">100%</output></span></label>
+        <label class="ed-check" id="edPreciseRow"><input type="checkbox" id="edPrecise"> Exact video cuts <small>(slower; otherwise cuts snap to the nearest key frame)</small></label>
+      </div>
+    </details>
+
+    <div class="ed-section ed-save-opts">
+      <h3>When saving</h3>
+      <label class="ed-check"><input type="checkbox" id="edMakePlaylist"> Put the pieces in a new playlist</label>
+      <label class="ed-check"><input type="checkbox" id="edReplace"> Replace the original in my library and playlists</label>
+      <label class="ed-check" id="edUploadRow"><input type="checkbox" id="edUpload"> Also save to my Google Drive folder</label>
+      <p class="ed-note">Your original file is never changed. Edits are saved as new items.</p>
+    </div>
+  </div>
+  <div class="ed-busy" id="edBusy" hidden>
+    <div class="ed-busy-box">
+      <div class="ed-busy-text" id="edBusyText">Working…</div>
+      <div class="progress"><div id="edBusyBar"></div></div>
+    </div>
+  </div>
+</section>
+
 <div class="menu" id="menu" hidden role="menu"></div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" hidden><span id="toastText"></span><button id="toastAction" hidden></button></div>
 
 <dialog id="modal">
   <form method="dialog" class="modal-form">
@@ -119,5 +208,7 @@
 </dialog>
 
 <script src="app.js"></script>
+<script src="drive.js"></script>
+<script src="editor.js"></script>
 </body>
 </html>

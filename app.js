@@ -36,6 +36,16 @@ const ICON = {
   playNext: '<svg viewBox="0 0 24 24"><path d="M3 6h12M3 12h8"/><path d="M15 12v8l6-4z"/></svg>',
   remove: '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>',
   palette: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24"><path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>',
+  cloudCheck: '<svg viewBox="0 0 24 24"><path d="M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M9 14l2 2 4-4"/></svg>',
+  drive: '<svg viewBox="0 0 24 24"><path d="M8.5 3h7l6 10.5-3.5 6h-12L2.5 13.5z"/><path d="M8.5 3l6 10.5h7M2.5 13.5h12l-3.5 6"/></svg>',
+  sync: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/></svg>',
+  scissors: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>',
+  download: '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  install: '<svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M12 7v7M9 11l3 3 3-3"/></svg>',
+  undo: '<svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>',
+  back: '<svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
   grip: '<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
 };
 const EQ = '<span class="eq"><i></i><i></i><i></i></span>';
@@ -115,7 +125,7 @@ function idbWrite(stores, fn) {
 }
 const idbPut = (store, value) => idbWrite([store], s => s(store).put(value));
 
-const PREF_DEFAULTS = { volume: 1, muted: false, repeat: 'off', shuffle: {}, sort: 'added', stageCollapsed: false };
+const PREF_DEFAULTS = { volume: 1, muted: false, repeat: 'off', shuffle: {}, sort: 'added', stageCollapsed: false, driveHidden: [] };
 let prefs = { ...PREF_DEFAULTS };
 try { prefs = { ...PREF_DEFAULTS, ...JSON.parse(localStorage.getItem('mmp-prefs') || '{}') }; } catch { /* ignore */ }
 function savePrefs() { try { localStorage.setItem('mmp-prefs', JSON.stringify(prefs)); } catch { /* ignore */ } }
@@ -124,13 +134,15 @@ function savePrefs() { try { localStorage.setItem('mmp-prefs', JSON.stringify(pr
  * App state
  * ========================================================================= */
 const state = {
-  media: new Map(),       // id -> { id, name, fileName, type, mime, size, duration, added, categories: [] }
+  media: new Map(),       // id -> { id, name, fileName, type, mime, size, duration, added, categories: [],
+                          //        source: 'local'|'drive', cached, driveId?, editedFrom? }
   categories: new Map(),  // id -> { id, name, color, created }
   playlists: new Map(),   // id -> { id, name, items: [mediaId], shuffle, created }
   view: { type: 'library' }, // library | uncategorized | queue | category(id) | playlist(id)
   search: '',
   typeFilter: 'all',      // all | audio | video
   selected: new Set(),
+  downloads: new Map(),   // id -> percent, while a Google Drive file is downloading
 };
 const player = {
   queue: [],       // play order (possibly shuffled)
@@ -152,6 +164,7 @@ function viewTitle(v = state.view) {
     case 'library': return 'All media';
     case 'uncategorized': return 'Uncategorized';
     case 'queue': return 'Now playing';
+    case 'drive': return (typeof Drive !== 'undefined' && Drive.cfg.folderName) || 'Google Drive';
     case 'category': return state.categories.get(v.id)?.name ?? 'Category';
     case 'playlist': return state.playlists.get(v.id)?.name ?? 'Playlist';
   }
@@ -162,6 +175,7 @@ function contextLabelFor(key) {
   if (key.startsWith('pl:')) return 'Playlist · ' + (state.playlists.get(key.slice(3))?.name ?? '');
   if (key.startsWith('cat:')) return 'Category · ' + (state.categories.get(key.slice(4))?.name ?? '');
   if (key === 'uncategorized') return 'Uncategorized';
+  if (key === 'drive') return 'Google Drive';
   return 'Library';
 }
 
@@ -190,6 +204,7 @@ function viewBaseIds(v = state.view) {
   let items = [...state.media.values()];
   if (v.type === 'category') items = items.filter(m => m.categories.includes(v.id));
   if (v.type === 'uncategorized') items = items.filter(m => !m.categories.some(c => state.categories.has(c)));
+  if (v.type === 'drive') items = items.filter(m => m.source === 'drive');
   const sorters = {
     added: (a, b) => b.added - a.added,
     name: (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }),
@@ -248,6 +263,9 @@ function renderSidebar() {
     navItem({ active: v.type === 'library', icon: ICON.library, label: 'All media', count: all.length, attrs: 'data-view="library"' }),
     navItem({ active: v.type === 'uncategorized', icon: ICON.tagOff, label: 'Uncategorized', count: uncategorized, attrs: 'data-view="uncategorized"' }),
     navItem({ active: v.type === 'queue', icon: ICON.queue, label: 'Now playing', count: player.queue.length || '', attrs: 'data-view="queue"' }),
+    (typeof Drive !== 'undefined' && Drive.configured())
+      ? navItem({ active: v.type === 'drive', icon: ICON.drive, label: 'Google Drive', count: all.filter(m => m.source === 'drive').length, attrs: 'data-view="drive"' })
+      : '',
   ].join('');
 
   const cats = [...state.categories.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
@@ -276,7 +294,7 @@ function renderHeader() {
   const base = viewBaseIds();
   const totalDur = base.reduce((s, id) => s + (state.media.get(id).duration || 0), 0);
   const key = viewKey(v);
-  const kicker = { library: 'Library', uncategorized: 'Library', queue: 'Queue', category: 'Category', playlist: 'Playlist' }[v.type];
+  const kicker = { library: 'Library', uncategorized: 'Library', queue: 'Queue', category: 'Category', playlist: 'Playlist', drive: 'Google Drive folder' }[v.type];
   const shuffleOn = getShuffle(key);
   const hasItems = base.length > 0;
 
@@ -287,7 +305,13 @@ function renderHeader() {
     if (v.type === 'playlist') {
       actions += `<button class="btn" data-act="randomize" ${base.length > 1 ? '' : 'disabled'} title="Permanently put this playlist in a new random order">${ICON.shuffle} Randomize order</button>`;
     }
-    actions += `<button class="btn" data-act="import">${ICON.upload} Add files</button>`;
+    if (v.type === 'drive') {
+      actions += `<button class="btn" data-act="drive-sync">${ICON.sync} Sync now</button>`;
+      actions += `<button class="btn" data-act="drive-offline" ${hasItems ? '' : 'disabled'} title="Download every file so it plays without a connection">${ICON.download} Download all</button>`;
+      actions += `<button class="icon-btn" data-act="drive-settings" title="Google Drive settings" aria-label="Google Drive settings">${ICON.gear}</button>`;
+    } else {
+      actions += `<button class="btn" data-act="import">${ICON.upload} Add files</button>`;
+    }
     if (v.type === 'category' || v.type === 'playlist') {
       actions += `<button class="icon-btn" data-act="view-menu" title="More options" aria-label="More options">${ICON.more}</button>`;
     }
@@ -295,7 +319,9 @@ function renderHeader() {
     actions += `<button class="btn" data-act="clear-queue">${ICON.remove} Clear queue</button>`;
   }
 
-  const shuffleNote = (v.type === 'playlist' || v.type === 'category' || v.type === 'library' || v.type === 'uncategorized')
+  let syncNote = '';
+  if (v.type === 'drive' && Drive.cfg.lastSync) syncNote = ' · Synced ' + new Date(Drive.cfg.lastSync).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
+  const shuffleNote = (v.type !== 'queue')
     ? ` · Shuffle ${shuffleOn ? '<b>on</b>' : 'off'}` : '';
 
   const showSort = v.type !== 'playlist' && v.type !== 'queue';
@@ -305,7 +331,7 @@ function renderHeader() {
       <div class="vh-title">
         <div class="vh-kicker">${kicker}</div>
         <h1>${esc(viewTitle())}</h1>
-        <div class="vh-sub">${plural(base.length, 'item')}${totalDur ? ' · ' + fmtLong(totalDur) : ''}${shuffleNote}</div>
+        <div class="vh-sub">${plural(base.length, 'item')}${totalDur ? ' · ' + fmtLong(totalDur) : ''}${shuffleNote}${syncNote}</div>
       </div>
     </div>
     <div class="vh-actions">${actions}</div>
@@ -347,6 +373,7 @@ function emptyState() {
     library: ['Your library is empty', 'Add the audio and video files you\'ve made. Drag and drop them anywhere on this window, or use the button below.', true],
     uncategorized: anyMedia ? ['Everything is categorized', 'Nice and tidy.'] : ['Nothing here yet', 'Add some files to get started.', true],
     queue: ['Nothing in the queue', 'Play something from your library, a category or a playlist.'],
+    drive: ['No files from Google Drive yet', 'Tap “Sync now” to bring in the audio and video files from your folder. They download to this device the first time you play them.'],
     category: ['This category is empty', 'Select items in your library and choose “Categories”, or add new files while viewing this category.', true],
     playlist: ['This playlist is empty', 'Select items in your library and choose “Add to playlist”, or add new files while viewing this playlist.', true],
   };
@@ -378,12 +405,39 @@ function renderList() {
     return `<div class="row ${playing ? 'playing' : ''} ${sel ? 'selected' : ''}" data-id="${id}" ${state.view.type !== 'queue' ? 'draggable="true"' : ''}>
       <label class="sel"><input type="checkbox" ${sel ? 'checked' : ''} aria-label="Select ${esc(m.name)}"></label>
       <span class="num">${num}</span>
-      <span class="kind" title="${m.type === 'video' ? 'Video' : 'Audio'}">${m.type === 'video' ? ICON.video : ICON.music}</span>
+      <span class="kind ${m.source === 'drive' ? 'from-drive' : ''}" title="${kindTitle(m)}">${kindIcon(m)}</span>
       <div class="title"><div class="name" title="${esc(m.name)}">${esc(m.name)}</div><div class="meta">${chips}</div></div>
-      <span class="dur">${m.duration ? fmtTime(m.duration) : '–'}</span>
+      <span class="dur">${state.downloads.has(id) ? state.downloads.get(id) + '%' : m.duration ? fmtTime(m.duration) : '–'}</span>
       <button class="icon-btn more" title="More options" aria-label="More options">${ICON.more}</button>
     </div>`;
   }).join('');
+}
+
+function kindIcon(m) {
+  if (m.source === 'drive') return m.cached ? ICON.cloudCheck : ICON.cloud;
+  return m.type === 'video' ? ICON.video : ICON.music;
+}
+function kindTitle(m) {
+  const t = m.type === 'video' ? 'Video' : 'Audio';
+  if (m.source === 'drive') return `${t} from Google Drive · ${m.cached ? 'saved on this device' : 'downloads when played'}`;
+  return t;
+}
+/** Update one row's download percentage without re-rendering the list. */
+function setDownloadProgress(id, pct) {
+  if (pct === null) state.downloads.delete(id); else state.downloads.set(id, pct);
+  const row = document.querySelector(`.row[data-id="${id}"]`);
+  if (!row) return;
+  const m = state.media.get(id);
+  row.querySelector('.dur').textContent = pct === null ? (m && m.duration ? fmtTime(m.duration) : '–') : pct + '%';
+  if (m) { row.querySelector('.kind').innerHTML = kindIcon(m); row.querySelector('.kind').title = kindTitle(m); }
+}
+
+/** Get a media item's file, downloading it from Google Drive first if needed. */
+async function getMediaBlob(m, { quiet = false } = {}) {
+  const rec = await idbGet('blobs', m.id);
+  if (rec && rec.blob) return rec.blob;
+  if (m.source === 'drive') return Drive.download(m, { quiet });
+  return null;
 }
 
 /** Light refresh of the "playing" highlight without rebuilding the whole list. */
@@ -494,17 +548,30 @@ async function loadCurrent(autoplay) {
   const token = ++player.loadToken;
   const m = currentMedia();
   if (!m) { stopPlayback(); return; }
-  let rec;
-  try { rec = await idbGet('blobs', m.id); } catch (e) { console.error(e); }
+  let blob = null;
+  if (m.source === 'drive' && !m.cached) {
+    // Show what's coming while the file downloads.
+    video.pause();
+    $('#npTitle').textContent = m.name;
+    $('#npSub').textContent = 'Downloading from Google Drive…';
+    refreshPlayingRow();
+  }
+  try { blob = await getMediaBlob(m); } catch (e) {
+    if (token !== player.loadToken) return;
+    if (e && e.needsAuth) toast('Connect to Google Drive to play this file', 0, { label: 'Connect', onClick: () => Drive.connect().then(() => loadCurrent(true)) });
+    else toast(`Couldn't get “${m.name}”: ${e && e.message ? e.message : e}`);
+    updateControls();
+    return;
+  }
   if (token !== player.loadToken) return; // a newer request superseded this one
-  if (!rec || !rec.blob) { toast(`Couldn't find the file for “${m.name}”`); return; }
+  if (!blob) { toast(`Couldn't find the file for “${m.name}”`); return; }
   if (player.url) URL.revokeObjectURL(player.url);
-  player.url = URL.createObjectURL(rec.blob);
+  player.url = URL.createObjectURL(blob);
   video.src = player.url;
   showStage(m);
   if (autoplay) {
     video.play().catch(err => {
-      if (err.name === 'NotAllowedError') return; // browser wants a click first
+      if (err.name === 'NotAllowedError') { toast('Ready. Tap play to start.'); return; } // browser wants a tap first
       if (err.name !== 'AbortError') toast(`Can't play “${m.name}”. Your browser may not support this format.`);
     });
   }
@@ -700,6 +767,8 @@ async function importFiles(fileList) {
       duration: info.duration,
       added: Date.now() + i, // keep import order stable when sorting by date
       categories: v.type === 'category' ? [v.id] : [],
+      source: 'local',
+      cached: true,
     };
     try {
       await idbWrite(['media', 'blobs'], s => {
@@ -745,8 +814,21 @@ async function deleteMedia(ids) {
   ids = ids.filter(id => state.media.has(id));
   if (!ids.length) return;
   const what = ids.length === 1 ? `“${state.media.get(ids[0]).name}”` : plural(ids.length, 'item');
-  const ok = await confirmBox('Delete from library?', `${what} will be removed from your library, every category and every playlist. Your original files on disk are not affected.`, 'Delete');
+  const fromDrive = ids.some(id => state.media.get(id).source === 'drive');
+  const ok = await confirmBox('Delete from library?', `${what} will be removed from your library, every category and every playlist. Your original files ${fromDrive ? 'on your computer and in Google Drive are' : 'are'} not affected.`, 'Delete');
   if (!ok) return;
+  await removeMediaRecords(ids, { hideFromSync: true });
+  toast(`Deleted ${what}`);
+}
+
+/** Remove items from the library without asking (used by delete and Drive sync). */
+async function removeMediaRecords(ids, { hideFromSync = false } = {}) {
+  ids = ids.filter(id => state.media.has(id));
+  if (!ids.length) return;
+  if (hideFromSync) {
+    const hidden = ids.map(id => state.media.get(id)).filter(m => m.source === 'drive' && m.driveId).map(m => m.driveId);
+    if (hidden.length) { prefs.driveHidden = [...new Set([...(prefs.driveHidden || []), ...hidden])]; savePrefs(); }
+  }
   const changedPlaylists = [];
   for (const p of state.playlists.values()) {
     const before = p.items.length;
@@ -761,7 +843,41 @@ async function deleteMedia(ids) {
   for (const id of ids) { state.media.delete(id); state.selected.delete(id); }
   render();
   updateStorage();
-  toast(`Deleted ${what}`);
+}
+
+/** Save a copy of an item to the device (Files / Downloads). */
+async function saveToDevice(id) {
+  const m = state.media.get(id);
+  let blob;
+  try { blob = await getMediaBlob(m); } catch (e) {
+    if (e && e.needsAuth) toast('Connect to Google Drive first', 0, { label: 'Connect', onClick: () => Drive.connect().then(() => saveToDevice(id)) });
+    else toast(`Couldn't get the file: ${e.message || e}`);
+    return;
+  }
+  if (!blob) return;
+  const ext = (m.fileName && m.fileName.includes('.')) ? m.fileName.split('.').pop() : extForMime(m.mime || blob.type);
+  const fileName = m.name.replace(/[\\/:*?"<>|]+/g, '_') + (ext ? '.' + ext : '');
+  // On phones, the share sheet is the friendliest way to save to Files / Photos.
+  try {
+    const file = new File([blob], fileName, { type: blob.type || m.mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && matchMedia('(pointer: coarse)').matches) {
+      await navigator.share({ files: [file], title: m.name });
+      return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+function extForMime(mime = '') {
+  const map = { 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav',
+    'audio/flac': 'flac', 'audio/x-flac': 'flac', 'audio/ogg': 'ogg', 'audio/opus': 'opus', 'audio/webm': 'webm', 'video/mp4': 'mp4', 'video/webm': 'webm',
+    'video/quicktime': 'mov', 'video/x-matroska': 'mkv', 'video/3gpp': '3gp', 'video/x-m4v': 'm4v' };
+  return map[mime.split(';')[0].trim()] || '';
 }
 
 /* ----- Categories ----- */
@@ -1011,9 +1127,17 @@ function showMenu(anchor, items) {
 function hideMenu() { menu.hidden = true; menu.onclick = null; }
 
 let toastTimer;
-function toast(msg, ms = 2600) {
+function toast(msg, ms = 2600, action = null) {
   const t = $('#toast');
-  t.textContent = msg;
+  $('#toastText').textContent = msg;
+  const b = $('#toastAction');
+  b.hidden = !action;
+  b.onclick = null;
+  if (action) {
+    b.textContent = action.label;
+    b.onclick = () => { t.hidden = true; action.onClick(); };
+    if (!ms) ms = 12000;
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
   if (ms) toastTimer = setTimeout(() => { t.hidden = true; }, ms);
@@ -1031,10 +1155,17 @@ function rowMenuItems(id) {
     { label: 'Play', icon: ICON.playLine, action: () => playRow(id) },
     { label: 'Play next', icon: ICON.playNext, action: () => playNext([id]) },
     '-',
+    { label: 'Edit & split…', icon: ICON.scissors, action: () => Editor.open(id) },
     { label: 'Add to playlist…', icon: ICON.addList, action: () => playlistDialog([id]) },
     { label: 'Categories…', icon: ICON.tag, action: () => categoryDialog([id]) },
     { label: 'Rename…', icon: ICON.edit, action: () => renameMedia(id) },
+    '-',
+    { label: 'Save to device', icon: ICON.download, action: () => saveToDevice(id) },
   ];
+  const m = state.media.get(id);
+  if (m.source === 'drive' && !m.cached) items.push({ label: 'Download for offline', icon: ICON.cloud, action: () => Drive.download(m).catch(e => Drive.handleError(e, () => Drive.download(m))) });
+  if (m.source === 'drive' && m.cached) items.push({ label: 'Remove offline copy', icon: ICON.cloud, action: () => Drive.removeOffline(m) });
+  if (m.source !== 'drive' && Drive.configured() && Drive.cfg.allowUpload) items.push({ label: 'Upload to Google Drive', icon: ICON.drive, action: () => Drive.uploadItems([id]) });
   if (v.type === 'playlist') {
     items.push('-',
       { label: 'Move up', icon: ICON.chevUp, action: () => stepInPlaylist(v.id, id, -1) },
@@ -1174,6 +1305,9 @@ function handleAction(act, btn) {
     case 'import': $('#fileInput').click(); break;
     case 'open-sidebar': openSidebar(); break;
     case 'clear-queue': stopPlayback(); break;
+    case 'drive-sync': Drive.connect().then(() => Drive.sync()).catch(e => Drive.handleError(e)); break;
+    case 'drive-offline': Drive.downloadAll(viewItems()); break;
+    case 'drive-settings': Drive.openSettings(); break;
     case 'view-menu':
       if (v.type === 'playlist') showMenu(btn, playlistMenuItems(v.id).slice(3));
       else if (v.type === 'category') showMenu(btn, [
@@ -1371,6 +1505,7 @@ list.addEventListener('scroll', hideMenu);
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !menu.hidden) { hideMenu(); return; }
   if (modal.open) return;
+  if (!$('#editor').hidden) return; // the editor has its own shortcuts
   const tag = (e.target.tagName || '').toLowerCase();
   const typing = tag === 'input' && !['range', 'checkbox'].includes(e.target.type) || tag === 'textarea' || tag === 'select';
   if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1393,13 +1528,17 @@ document.addEventListener('keydown', e => {
 /* =========================================================================
  * Start up
  * ========================================================================= */
-(async function init() {
+async function init() {
   video.volume = Math.min(1, Math.max(0, prefs.volume));
   video.muted = !!prefs.muted;
   try {
     db = await openDB();
     const [media, cats, pls] = await Promise.all([idbAll('media'), idbAll('categories'), idbAll('playlists')]);
-    media.forEach(m => { m.categories = m.categories || []; state.media.set(m.id, m); });
+    media.forEach(m => {
+      m.categories = m.categories || [];
+      if (!m.source) { m.source = 'local'; m.cached = true; }
+      state.media.set(m.id, m);
+    });
     cats.forEach(c => state.categories.set(c.id, c));
     pls.forEach(p => { p.items = p.items || []; state.playlists.set(p.id, p); });
   } catch (err) {
@@ -1409,4 +1548,46 @@ document.addEventListener('keydown', e => {
   render();
   updateTime();
   updateStorage();
-})();
+  Drive.init();
+}
+window.addEventListener('DOMContentLoaded', init);
+
+/* =========================================================================
+ * Installable app (PWA)
+ * ========================================================================= */
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installPrompt = null;
+
+function renderInstallButton() {
+  const b = $('#installBtn');
+  b.innerHTML = `${ICON.install}<span>Install app</span>`;
+  b.hidden = isStandalone() || !(installPrompt || isIOS);
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; renderInstallButton(); });
+window.addEventListener('appinstalled', () => { installPrompt = null; renderInstallButton(); toast('Installed. Open “My Media” from your home screen.'); });
+$('#installBtn').addEventListener('click', async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => {});
+    installPrompt = null;
+    renderInstallButton();
+    return;
+  }
+  openModal('Install on your iPhone or iPad', `
+    <ol class="steps">
+      <li>Open this page in <b>Safari</b>.</li>
+      <li>Tap the <b>Share</b> button (the square with an arrow pointing up).</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    </ol>
+    <p class="modal-msg">“My Media” then opens full-screen from your home screen, like any other app.</p>`, 'Got it');
+});
+$('#driveSettingsBtn').innerHTML = `${ICON.drive}<span>Google Drive</span>`;
+$('#driveSettingsBtn').addEventListener('click', () => Drive.openSettings());
+renderInstallButton();
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker not registered', err));
+  });
+}
