@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Media Player</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>My Media</span>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-heading">Library</div>
+        <ul id="navLibrary"></ul>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-heading">
+          Categories
+          <button class="icon-btn small" id="addCategoryBtn" title="New category" aria-label="New category"></button>
+        </div>
+        <ul id="navCategories"></ul>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-heading">
+          Playlists
+          <button class="icon-btn small" id="addPlaylistBtn" title="New playlist" aria-label="New playlist"></button>
+        </div>
+        <ul id="navPlaylists"></ul>
+      </div>
+    </nav>
+
+    <div class="sidebar-foot" id="storageInfo"></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ Main ============ -->
+  <main class="main">
+    <section class="stage" id="stage" hidden>
+      <div class="stage-media">
+        <video id="video" playsinline preload="metadata"></video>
+        <div class="audio-art" id="audioArt">
+          <div class="disc" aria-hidden="true"></div>
+          <div class="audio-art-text">
+            <div class="audio-art-title" id="artTitle"></div>
+            <div class="audio-art-sub" id="artSub"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stage-tools">
+        <button class="icon-btn" id="fullscreenBtn" title="Fullscreen (F)" aria-label="Fullscreen"></button>
+        <button class="icon-btn" id="collapseStageBtn" title="Hide / show the player screen" aria-label="Toggle player screen"></button>
+      </div>
+    </section>
+
+    <header class="view-header" id="viewHeader"></header>
+    <div class="selection-bar" id="selectionBar" hidden></div>
+    <div class="list" id="list"></div>
+  </main>
+
+  <!-- ============ Player bar ============ -->
+  <footer class="playerbar">
+    <div class="np">
+      <span class="np-kind" id="npKind"></span>
+      <div class="np-text">
+        <div class="np-title" id="npTitle">Nothing playing</div>
+        <div class="np-sub" id="npSub">Pick something from your library</div>
+      </div>
+    </div>
+
+    <div class="transport">
+      <div class="buttons">
+        <button class="icon-btn" id="shuffleBtn" title="Shuffle (S)" aria-label="Shuffle"></button>
+        <button class="icon-btn" id="prevBtn" title="Previous (P)" aria-label="Previous"></button>
+        <button class="play-btn" id="playBtn" title="Play / pause (Space)" aria-label="Play"></button>
+        <button class="icon-btn" id="nextBtn" title="Next (N)" aria-label="Next"></button>
+        <button class="icon-btn" id="repeatBtn" title="Repeat (R)" aria-label="Repeat"></button>
+      </div>
+      <div class="seek">
+        <span class="time" id="curTime">0:00</span>
+        <input type="range" id="seekBar" min="0" max="1000" value="0" step="1" aria-label="Seek">
+        <span class="time" id="durTime">0:00</span>
+      </div>
+    </div>
+
+    <div class="volume">
+      <button class="icon-btn" id="muteBtn" title="Mute (M)" aria-label="Mute"></button>
+      <input type="range" id="volumeBar" min="0" max="100" value="100" aria-label="Volume">
+    </div>
+  </footer>
+</div>
+
+<input type="file" id="fileInput" multiple accept="audio/*,video/*,.mp3,.m4a,.aac,.wav,.flac,.ogg,.oga,.opus,.webm,.mp4,.m4v,.mov,.mkv" hidden>
+
+<div class="drop-overlay" id="dropOverlay" hidden>
+  <div class="drop-box">Drop audio or video files to add them</div>
+</div>
+
+<div class="menu" id="menu" hidden role="menu"></div>
+<div class="toast" id="toast" hidden></div>
+
+<dialog id="modal">
+  <form method="dialog" class="modal-form">
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button value="cancel" class="btn ghost" formnovalidate>Cancel</button>
+      <button value="ok" class="btn primary" id="modalOk">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
